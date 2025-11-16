@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quản lý đỗ xe</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    header {
+      background: #1e88e5;
+      color: white;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .container {
+      padding: 12px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 10px 0 6px;
+    }
+
+    .form {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .form-row > * {
+      flex: 1;
+    }
+
+    .datetime-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .datetime-input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .btn-now {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #43a047;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-now:hover {
+      background: #388e3c;
+    }
+
+    input[type="text"] {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #1e88e5;
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      background: #1976d2;
+    }
+
+    .top-bar {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0 10px;
+    }
+
+    #searchInput {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .record {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .record-number {
+      display: inline-block;
+      background: #1e88e5;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .record-plate {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e88e5;
+      margin: 6px 0;
+    }
+    .record-details {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .record-label {
+      font-size: 13px;
+      color: #666;
+      font-weight: 500;
+    }
+    .record-value {
+      font-size: 13px;
+      color: #333;
+    }
+    .record-location {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      margin: 6px 0;
+    }
+    .record-note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      padding: 8px;
+      background: #fff3cd;
+      border-radius: 6px;
+      border-left: 3px solid #ffc107;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-secondary {
+      background: #eeeeee;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-danger {
+      background: #ef5350;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e53935;
+    }
+
+    .empty-text {
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 480px) {
+      .form-row {
+        flex-direction: column;
+      }
+      .record-details {
+        grid-template-columns: auto 1fr;
+      }
+      .actions {
+        width: 100%;
+      }
+      .actions button {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Quản lý đỗ xe</header>
+  <div class="container">
+
+    <div class="section-title">Thêm lần đỗ xe</div>
+    <div class="form">
+      <div class="form-row">
+        <div class="datetime-group">
+          <input id="dateInput" class="datetime-input" type="text" placeholder="dd/mm/yyyy hh:mm" />
+          <button class="btn-now" onclick="setNow()">Bây giờ</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <input id="plateInput" type="text" placeholder="Biển số xe (VD: 30A-12345)" />
+      </div>
+      <div class="form-row">
+        <input id="buildingInput" type="text" placeholder="Địa điểm (VD: Chung cư A)" />
+      </div>
+      <div class="form-row">
+        <input id="floorInput" type="text" placeholder="Hầm/Tầng (VD: B2, Tầng 3)" />
+        <input id="spotInput" type="text" placeholder="Ô trống (VD: C5, A12)" />
+      </div>
+      <div class="form-row">
+        <input id="noteInput" type="text" placeholder="Ghi chú (tuỳ chọn)" />
+      </div>
+      <button class="btn-primary" onclick="addRecord()">Lưu lần đỗ</button>
+    </div>
+
+    <div class="section-title">Danh sách ( #1 là lần đỗ gần nhất )</div>
+    <div class="top-bar">
+      <input id="searchInput" type="text" placeholder="Tìm theo biển số / hầm / ô trống / địa điểm..." />
+    </div>
+
+    <div id="recordsContainer"></div>
+    <p class="empty-text" id="emptyText" style="display: none;">
+      Chưa có lần đỗ nào. Hãy thêm ở phần trên.
+    </p>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "parking_records_v3";
+    let records = [];
+
+    // Format ngày giờ theo định dạng dd/mm/yyyy hh:mm
+    function formatDateTime(date) {
+      const d = String(date.getDate()).padStart(2, "0");
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const y = date.getFullYear();
+      const h = String(date.getHours()).padStart(2, "0");
+      const min = String(date.getMinutes()).padStart(2, "0");
+      return `${d}/${m}/${y} ${h}:${min}`;
+    }
+
+    // Parse chuỗi dd/mm/yyyy hh:mm thành Date object
+    function parseDateTime(str) {
+      const parts = str.trim().split(" ");
+      if (parts.length !== 2) return null;
+      
+      const dateParts = parts[0].split("/");
+      const timeParts = parts[1].split(":");
+      
+      if (dateParts.length !== 3 || timeParts.length !== 2) return null;
+      
+      const day = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1;
+      const year = parseInt(dateParts[2]);
+      const hour = parseInt(timeParts[0]);
+      const minute = parseInt(timeParts[1]);
+      
+      const date = new Date(year, month, day, hour, minute);
+      
+      if (isNaN(date.getTime())) return null;
+      return date;
+    }
+
+    // Đặt thời gian hiện tại
+    function setNow() {
+      document.getElementById("dateInput").value = formatDateTime(new Date());
+    }
+
+    // Load records từ storage
+    function loadRecords() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      records = saved ? JSON.parse(saved) : [];
+      renderRecords();
+      setNow();
+    }
+
+    // Lưu records vào storage
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    // Thêm record mới
+    function addRecord() {
+      const dateInput = document.getElementById("dateInput");
+      const plateInput = document.getElementById("plateInput");
+      const buildingInput = document.getElementById("buildingInput");
+      const floorInput = document.getElementById("floorInput");
+      const spotInput = document.getElementById("spotInput");
+      const noteInput = document.getElementById("noteInput");
+
+      const dateTimeStr = dateInput.value.trim();
+      const plate = plateInput.value.trim();
+      const building = buildingInput.value.trim();
+      const floor = floorInput.value.trim();
+      const spot = spotInput.value.trim();
+      const note = noteInput.value.trim();
+
+      if (!dateTimeStr) {
+        alert("Vui lòng nhập ngày giờ hoặc nhấn 'Bây giờ'.");
+        return;
+      }
+
+      const dateObj = parseDateTime(dateTimeStr);
+      if (!dateObj) {
+        alert("Định dạng ngày giờ không hợp lệ. Vui lòng nhập theo định dạng: dd/mm/yyyy hh:mm");
+        return;
+      }
+
+      if (!plate) {
+        alert("Vui lòng nhập biển số xe.");
+        return;
+      }
+      if (!building) {
+        alert("Vui lòng nhập địa điểm.");
+        return;
+      }
+      if (!floor) {
+        alert("Vui lòng nhập hầm/tầng.");
+        return;
+      }
+      if (!spot) {
+        alert("Vui lòng nhập ô trống.");
+        return;
+      }
+
+      records.unshift({
+        id: Date.now(),
+        datetime: dateTimeStr,
+        timestamp: dateObj.getTime(),
+        plate,
+        building,
+        floor,
+        spot,
+        note
+      });
+
+      saveRecords();
+      renderRecords();
+
+      plateInput.value = "";
+      buildingInput.value = "";
+      floorInput.value = "";
+      spotInput.value = "";
+      noteInput.value = "";
+      setNow();
+    }
+
+    // Sửa record
+    function editRecord(id) {
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+
+      const newDateTime = prompt("Ngày giờ (dd/mm/yyyy hh:mm):", record.datetime);
+      if (newDateTime === null) return;
+
+      const newPlate = prompt("Biển số xe:", record.plate);
+      if (newPlate === null) return;
+
+      const newBuilding = prompt("Địa điểm:", record.building);
+      if (newBuilding === null) return;
+
+      const newFloor = prompt("Hầm/Tầng:", record.floor);
+      if (newFloor === null) return;
+
+      const newSpot = prompt("Ô trống:", record.spot);
+      if (newSpot === null) return;
+
+      const newNote = prompt("Ghi chú (có thể để trống):", record.note || "");
+      if (newNote === null) return;
+
+      const trimmedDateTime = newDateTime.trim();
+      if (trimmedDateTime) {
+        const dateObj = parseDateTime(trimmedDateTime);
+        if (dateObj) {
+          record.datetime = trimmedDateTime;
+          record.timestamp = dateObj.getTime();
+        }
+      }
+
+      record.plate = newPlate.trim() || record.plate;
+      record.building = newBuilding.trim() || record.building;
+      record.floor = newFloor.trim() || record.floor;
+      record.spot = newSpot.trim() || record.spot;
+      record.note = newNote.trim();
+
+      saveRecords();
+      renderRecords();
+    }
+
+    // Xóa record
+    function deleteRecord(id) {
+      if (!confirm("Xoá lần đỗ xe này?")) return;
+      records = records.filter(r => r.id !== id);
+      saveRecords();
+      renderRecords();
+    }
+
+    // Render danh sách records
+    function renderRecords() {
+      const container = document.getElementById("recordsContainer");
+      const emptyText = document.getElementById("emptyText");
+      const searchInput = document.getElementById("searchInput");
+
+      const searchValue = searchInput.value.toLowerCase().trim();
+
+      container.innerHTML = "";
+
+      let filtered = records;
+
+      if (searchValue) {
+        filtered = records.filter(r => {
+          const combined = [
+            r.plate,
+            r.floor,
+            r.spot,
+            r.building,
+            r.datetime,
+            r.note
+          ].join(" ").toLowerCase();
+          return combined.includes(searchValue);
+        });
+      }
+
+      if (filtered.length === 0) {
+        emptyText.style.display = "block";
+        return;
+      }
+
+      emptyText.style.display = "none";
+
+      filtered.forEach(record => {
+        const orderIndex = records.findIndex(r => r.id === record.id) + 1;
+
+        const row = document.createElement("div");
+        row.className = "record";
+
+        // Header với số thứ tự và actions
+        const header = document.createElement("div");
+        header.className = "record-header";
+
+        const numberBadge = document.createElement("span");
+        numberBadge.className = "record-number";
+        numberBadge.textContent = `#${orderIndex}`;
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Sửa";
+        editBtn.className = "btn-secondary";
+        editBtn.onclick = () => editRecord(record.id);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Xoá";
+        delBtn.className = "btn-danger";
+        delBtn.onclick = () => deleteRecord(record.id);
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        header.appendChild(numberBadge);
+        header.appendChild(actions);
+
+        // Biển số xe nổi bật
+        const plate = document.createElement("div");
+        plate.className = "record-plate";
+        plate.textContent = `🚗 ${record.plate}`;
+
+        // Vị trí đỗ xe nổi bật
+        const location = document.createElement("div");
+        location.className = "record-location";
+        location.textContent = `📍 ${record.floor} - Ô ${record.spot}`;
+
+        // Chi tiết dạng bảng
+        const details = document.createElement("div");
+        details.className = "record-details";
+
+        const addDetailRow = (label, value) => {
+          const labelEl = document.createElement("div");
+          labelEl.className = "record-label";
+          labelEl.textContent = label;
+
+          const valueEl = document.createElement("div");
+          valueEl.className = "record-value";
+          valueEl.textContent = value;
+
+          details.appendChild(labelEl);
+          details.appendChild(valueEl);
+        };
+
+        addDetailRow("🏢 Địa điểm:", record.building);
+        addDetailRow("🕐 Thời gian:", record.datetime);
+
+        // Ghi chú (nếu có)
+        let noteEl = null;
+        if (record.note) {
+          noteEl = document.createElement("div");
+          noteEl.className = "record-note";
+          noteEl.textContent = `📝 ${record.note}`;
+        }
+
+        // Ghép vào row
+        row.appendChild(header);
+        row.appendChild(plate);
+        row.appendChild(location);
+        row.appendChild(details);
+        if (noteEl) row.appendChild(noteEl);
+
+        container.appendChild(row);
+      });
+    }
+
+    // Event listener cho tìm kiếm
+    document.getElementById("searchInput").addEventListener("input", renderRecords);
+
+    // Khởi tạo
+    document.addEventListener("DOMContentLoaded", loadRecords);
+  </script>
+</body>
+</html>
