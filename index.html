@@ -138,13 +138,51 @@
       font-size: 14px;
     }
 
+    /* ---- SWIPE CARD ---- */
     .record {
+      position: relative;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .record-content {
       background: white;
       border-radius: 10px;
       padding: 12px;
-      margin-bottom: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: transform 0.2s ease;
     }
+
+    .swipe-actions {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .swipe-btn {
+      width: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+    }
+
+    .swipe-edit {
+      background: #9e9e9e;
+    }
+
+    .swipe-delete {
+      background: #ef5350;
+    }
+
     .record-header {
       display: flex;
       justify-content: space-between;
@@ -200,28 +238,6 @@
       border-left: 3px solid #ffc107;
     }
 
-    .actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .btn-secondary {
-      background: #eeeeee;
-    }
-
-    .btn-secondary:hover {
-      background: #e0e0e0;
-    }
-
-    .btn-danger {
-      background: #ef5350;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #e53935;
-    }
-
     .empty-text {
       text-align: center;
       color: #777;
@@ -235,12 +251,6 @@
       }
       .record-details {
         grid-template-columns: auto 1fr;
-      }
-      .actions {
-        width: 100%;
-      }
-      .actions button {
-        flex: 1;
       }
     }
   </style>
@@ -585,6 +595,84 @@
       renderRecords();
     }
 
+    // Thiết lập swipe cho 1 record
+    function setupSwipe(row, content) {
+      let startX = 0;
+      let initialOffset = 0;
+      let currentOffset = 0;
+      let dragging = false;
+      const maxLeft = -140; // 2 nút * 70px
+
+      const startDrag = (clientX) => {
+        dragging = true;
+        startX = clientX;
+        initialOffset = currentOffset;
+        content.style.transition = "none";
+      };
+
+      const moveDrag = (clientX) => {
+        if (!dragging) return;
+        const dx = clientX - startX;
+        let newOffset = initialOffset + dx;
+        if (newOffset < maxLeft) newOffset = maxLeft;
+        if (newOffset > 0) newOffset = 0;
+        currentOffset = newOffset;
+        content.style.transform = `translateX(${newOffset}px)`;
+      };
+
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        content.style.transition = "transform 0.2s ease";
+        // nếu kéo quá nửa => mở full
+        if (currentOffset < maxLeft / 2) {
+          currentOffset = maxLeft;
+        } else {
+          currentOffset = 0;
+        }
+        content.style.transform = `translateX(${currentOffset}px)`;
+      };
+
+      // touch events
+      row.addEventListener("touchstart", (e) => {
+        if (e.touches.length > 1) return;
+        startDrag(e.touches[0].clientX);
+      });
+
+      row.addEventListener("touchmove", (e) => {
+        if (!dragging) return;
+        moveDrag(e.touches[0].clientX);
+      });
+
+      row.addEventListener("touchend", () => {
+        endDrag();
+      });
+
+      // mouse events (desktop)
+      row.addEventListener("mousedown", (e) => {
+        startDrag(e.clientX);
+
+        const onMouseMove = (ev) => moveDrag(ev.clientX);
+        const onMouseUp = () => {
+          endDrag();
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+        };
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+      });
+
+      // click vào nội dung sẽ đóng swipe nếu đang mở
+      content.addEventListener("click", () => {
+        if (currentOffset !== 0) {
+          currentOffset = 0;
+          content.style.transition = "transform 0.2s ease";
+          content.style.transform = "translateX(0px)";
+        }
+      });
+    }
+
     // Render danh sách records
     function renderRecords() {
       const container = document.getElementById("recordsContainer");
@@ -624,7 +712,10 @@
         const row = document.createElement("div");
         row.className = "record";
 
-        // Header với số thứ tự và actions
+        const content = document.createElement("div");
+        content.className = "record-content";
+
+        // Header với số thứ tự
         const header = document.createElement("div");
         header.className = "record-header";
 
@@ -632,24 +723,7 @@
         numberBadge.className = "record-number";
         numberBadge.textContent = `#${orderIndex}`;
 
-        const actions = document.createElement("div");
-        actions.className = "actions";
-
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Sửa";
-        editBtn.className = "btn-secondary";
-        editBtn.onclick = () => editRecord(record.id);
-
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "Xoá";
-        delBtn.className = "btn-danger";
-        delBtn.onclick = () => deleteRecord(record.id);
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-
         header.appendChild(numberBadge);
-        header.appendChild(actions);
 
         // Biển số xe nổi bật
         const plate = document.createElement("div");
@@ -693,12 +767,41 @@
           noteEl.textContent = `📝 ${record.note}`;
         }
 
-        // Ghép vào row
-        row.appendChild(header);
-        row.appendChild(plate);
-        row.appendChild(location);
-        row.appendChild(details);
-        if (noteEl) row.appendChild(noteEl);
+        // Nội dung card
+        content.appendChild(header);
+        content.appendChild(plate);
+        content.appendChild(location);
+        content.appendChild(details);
+        if (noteEl) content.appendChild(noteEl);
+
+        // Nút Sửa / Xóa phía sau (swipe actions)
+        const swipeActions = document.createElement("div");
+        swipeActions.className = "swipe-actions";
+
+        const editBtn = document.createElement("div");
+        editBtn.className = "swipe-btn swipe-edit";
+        editBtn.textContent = "Sửa";
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          editRecord(record.id);
+        };
+
+        const delBtn = document.createElement("div");
+        delBtn.className = "swipe-btn swipe-delete";
+        delBtn.textContent = "Xoá";
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteRecord(record.id);
+        };
+
+        swipeActions.appendChild(editBtn);
+        swipeActions.appendChild(delBtn);
+
+        row.appendChild(swipeActions);
+        row.appendChild(content);
+
+        // Gắn hành vi swipe
+        setupSwipe(row, content);
 
         container.appendChild(row);
       });
