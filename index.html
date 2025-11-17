@@ -84,12 +84,25 @@
       background: #388e3c;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    select {
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid #ccc;
       font-size: 14px;
       width: 100%;
+      background: white;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    select:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #1e88e5;
+      box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
     }
 
     button {
@@ -244,15 +257,29 @@
           <button class="btn-now" onclick="setNow()">Bây giờ</button>
         </div>
       </div>
+
+      <!-- Biển số: dropdown + input custom -->
       <div class="form-row">
-        <input id="plateInput" type="text" placeholder="Biển số xe (VD: 30A-12345)" />
+        <select id="plateInput">
+          <option value="">-- Chọn biển số --</option>
+          <option value="other">📝 Thêm biển số mới...</option>
+        </select>
+        <input id="plateInputCustom" type="text"
+               placeholder="Nhập biển số mới (VD: 30A-12345)"
+               style="display: none;"
+               maxlength="15" />
       </div>
+
       <div class="form-row">
-        <input id="buildingInput" type="text" placeholder="Địa điểm (VD: Chung cư A)" />
+        <select id="buildingInput">
+          <option value="">-- Chọn địa điểm --</option>
+          <option value="other">📝 Thêm địa điểm mới...</option>
+        </select>
+        <input id="buildingInputCustom" type="text" placeholder="Nhập địa điểm mới" style="display: none;" />
       </div>
       <div class="form-row">
         <input id="floorInput" type="text" placeholder="Hầm/Tầng (VD: B2, Tầng 3)" />
-        <input id="spotInput" type="text" placeholder="Ô trống (VD: C5, A12)" />
+        <input id="spotInput" type="text" placeholder="Ô trống (tuỳ chọn)" />
       </div>
       <div class="form-row">
         <input id="noteInput" type="text" placeholder="Ghi chú (tuỳ chọn)" />
@@ -273,7 +300,12 @@
 
   <script>
     const STORAGE_KEY = "parking_records_v3";
+    const LOCATIONS_KEY = "parking_locations_v1";
+    const PLATES_KEY = "parking_plates_v1";
+
     let records = [];
+    let customLocations = [];
+    let customPlates = [];
 
     // Format ngày giờ theo định dạng dd/mm/yyyy hh:mm
     function formatDateTime(date) {
@@ -316,8 +348,17 @@
     function loadRecords() {
       const saved = localStorage.getItem(STORAGE_KEY);
       records = saved ? JSON.parse(saved) : [];
-      renderRecords();
+      
+      const savedLocations = localStorage.getItem(LOCATIONS_KEY);
+      customLocations = savedLocations ? JSON.parse(savedLocations) : [];
+      
+      const savedPlates = localStorage.getItem(PLATES_KEY);
+      customPlates = savedPlates ? JSON.parse(savedPlates) : [];
+
+      updateLocationDropdown();
+      updatePlateDropdown();
       setNow();
+      renderRecords();
     }
 
     // Lưu records vào storage
@@ -325,18 +366,99 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
     }
 
+    // Lưu custom locations
+    function saveLocations() {
+      localStorage.setItem(LOCATIONS_KEY, JSON.stringify(customLocations));
+    }
+
+    // Lưu custom plates
+    function savePlates() {
+      localStorage.setItem(PLATES_KEY, JSON.stringify(customPlates));
+    }
+
+    // Cập nhật dropdown địa điểm
+    function updateLocationDropdown() {
+      const select = document.getElementById("buildingInput");
+      if (!select) return;
+
+      // Xóa các options custom cũ
+      select.querySelectorAll("option[data-custom]").forEach(opt => opt.remove());
+      
+      // Thêm custom locations vào trước option "other"
+      const otherOption = select.querySelector("option[value='other']");
+      customLocations.forEach(loc => {
+        const option = document.createElement("option");
+        option.value = loc;
+        option.textContent = loc;
+        option.setAttribute("data-custom", "true");
+        select.insertBefore(option, otherOption);
+      });
+    }
+
+    // Cập nhật dropdown biển số
+    function updatePlateDropdown() {
+      const select = document.getElementById("plateInput");
+      if (!select) return;
+
+      // Xóa các options custom cũ
+      select.querySelectorAll("option[data-custom]").forEach(opt => opt.remove());
+
+      // Thêm custom plates vào trước option "other"
+      const otherOption = select.querySelector("option[value='other']");
+      customPlates.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p;
+        option.textContent = p;
+        option.setAttribute("data-custom", "true");
+        select.insertBefore(option, otherOption);
+      });
+    }
+
     // Thêm record mới
     function addRecord() {
       const dateInput = document.getElementById("dateInput");
-      const plateInput = document.getElementById("plateInput");
-      const buildingInput = document.getElementById("buildingInput");
+      const plateSelect = document.getElementById("plateInput");
+      const plateCustomInput = document.getElementById("plateInputCustom");
+      const buildingSelect = document.getElementById("buildingInput");
+      const buildingCustomInput = document.getElementById("buildingInputCustom");
       const floorInput = document.getElementById("floorInput");
       const spotInput = document.getElementById("spotInput");
       const noteInput = document.getElementById("noteInput");
 
       const dateTimeStr = dateInput.value.trim();
-      const plate = plateInput.value.trim();
-      const building = buildingInput.value.trim();
+      let plate = plateSelect.value;
+      let building = buildingSelect.value;
+      
+      // Nếu chọn "other", lấy giá trị từ input custom - biển số
+      if (plate === "other") {
+        plate = plateCustomInput.value.trim();
+        if (!plate) {
+          alert("Vui lòng nhập biển số xe.");
+          return;
+        }
+        // Lưu biển số mới vào danh sách
+        if (!customPlates.includes(plate)) {
+          customPlates.push(plate);
+          savePlates();
+          updatePlateDropdown();
+        }
+      }
+
+      // Nếu chọn "other", lấy giá trị từ input custom - địa điểm
+      if (building === "other") {
+        building = buildingCustomInput.value.trim();
+        if (!building) {
+          alert("Vui lòng nhập địa điểm.");
+          return;
+        }
+        // Lưu địa điểm mới vào danh sách
+        if (!customLocations.includes(building)) {
+          customLocations.push(building);
+          saveLocations();
+          updateLocationDropdown();
+        }
+      }
+      
       const floor = floorInput.value.trim();
       const spot = spotInput.value.trim();
       const note = noteInput.value.trim();
@@ -353,19 +475,15 @@
       }
 
       if (!plate) {
-        alert("Vui lòng nhập biển số xe.");
+        alert("Vui lòng nhập hoặc chọn biển số xe.");
         return;
       }
       if (!building) {
-        alert("Vui lòng nhập địa điểm.");
+        alert("Vui lòng chọn địa điểm.");
         return;
       }
       if (!floor) {
         alert("Vui lòng nhập hầm/tầng.");
-        return;
-      }
-      if (!spot) {
-        alert("Vui lòng nhập ô trống.");
         return;
       }
 
@@ -383,8 +501,15 @@
       saveRecords();
       renderRecords();
 
-      plateInput.value = "";
-      buildingInput.value = "";
+      // Reset form
+      plateSelect.value = "";
+      plateCustomInput.value = "";
+      plateCustomInput.style.display = "none";
+
+      buildingSelect.value = "";
+      buildingCustomInput.value = "";
+      buildingCustomInput.style.display = "none";
+
       floorInput.value = "";
       spotInput.value = "";
       noteInput.value = "";
@@ -423,8 +548,27 @@
         }
       }
 
-      record.plate = newPlate.trim() || record.plate;
-      record.building = newBuilding.trim() || record.building;
+      const trimmedPlate = newPlate.trim();
+      if (trimmedPlate) {
+        record.plate = trimmedPlate;
+        // nếu plate mới chưa có trong dropdown thì thêm
+        if (!customPlates.includes(trimmedPlate)) {
+          customPlates.push(trimmedPlate);
+          savePlates();
+          updatePlateDropdown();
+        }
+      }
+
+      const trimmedBuilding = newBuilding.trim();
+      if (trimmedBuilding) {
+        record.building = trimmedBuilding;
+        if (!customLocations.includes(trimmedBuilding)) {
+          customLocations.push(trimmedBuilding);
+          saveLocations();
+          updateLocationDropdown();
+        }
+      }
+
       record.floor = newFloor.trim() || record.floor;
       record.spot = newSpot.trim() || record.spot;
       record.note = newNote.trim();
@@ -515,7 +659,11 @@
         // Vị trí đỗ xe nổi bật
         const location = document.createElement("div");
         location.className = "record-location";
-        location.textContent = `📍 ${record.floor} - Ô ${record.spot}`;
+        if (record.spot) {
+          location.textContent = `📍 ${record.floor} - Ô ${record.spot}`;
+        } else {
+          location.textContent = `📍 ${record.floor}`;
+        }
 
         // Chi tiết dạng bảng
         const details = document.createElement("div");
@@ -558,6 +706,55 @@
 
     // Event listener cho tìm kiếm
     document.getElementById("searchInput").addEventListener("input", renderRecords);
+
+    // Event listener cho dropdown địa điểm
+    document.getElementById("buildingInput").addEventListener("change", function(e) {
+      const customInput = document.getElementById("buildingInputCustom");
+      if (e.target.value === "other") {
+        customInput.style.display = "block";
+        customInput.focus();
+      } else {
+        customInput.style.display = "none";
+        customInput.value = "";
+      }
+    });
+
+    // Event listener cho dropdown biển số
+    document.getElementById("plateInput").addEventListener("change", function(e) {
+      const customInput = document.getElementById("plateInputCustom");
+      if (e.target.value === "other") {
+        customInput.style.display = "block";
+        customInput.focus();
+      } else {
+        customInput.style.display = "none";
+        customInput.value = "";
+      }
+    });
+
+    // Auto format biển số xe cho ô nhập mới
+    document.getElementById("plateInputCustom").addEventListener("input", function(e) {
+      let value = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, "");
+      
+      // Nếu có 3 ký tự trở lên và chưa có dấu gạch ngang
+      if (value.length >= 3 && !value.includes("-")) {
+        let firstPart = value.slice(0, 3);
+        let hasLetter = /[A-Z]/.test(firstPart);
+        
+        if (hasLetter) {
+          // Thêm dấu gạch ngang sau 3 ký tự đầu nếu ký tự thứ 4 là số
+          if (value.length > 3 && /[0-9]/.test(value[3])) {
+            value = value.slice(0, 3) + "-" + value.slice(3);
+          }
+        }
+      }
+      
+      // Giới hạn độ dài
+      if (value.length > 15) {
+        value = value.slice(0, 15);
+      }
+      
+      e.target.value = value;
+    });
 
     // Khởi tạo
     document.addEventListener("DOMContentLoaded", loadRecords);
